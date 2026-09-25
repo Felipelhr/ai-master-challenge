@@ -1,0 +1,11 @@
+# Metodologia V1
+
+O snapshot oficial usa 31/12/2017. A engine aceita outra data de referência. Engaging com 0–138 dias e conta conhecida recebe regressão logística L2. O alvo de treinamento vale 1 quando uma oportunidade ativa no corte vence nos 30 dias seguintes; as linhas de treino usam somente cortes mensais com janela completa. Variáveis: idade, faixa, produto, setor, receita anual da empresa em milhões de USD, funcionários, idade da empresa e subsidiária. Vendedor, manager, região, valor e data de fechamento não entram nas variáveis preditivas. `close_date` e desfecho são usados somente para construir rótulos históricos.
+
+Engaging coberto sem conta usa taxa suavizada `(wins_faixa + 20 × taxa_global)/(observações_faixa + 20)`. Em ambos os casos, o valor de prioridade é propensão vezes preço de catálogo. O score é o percentil desse valor entre os 298 negócios cobertos. Para 1.291 Engaging acima de 138 dias e 500 Prospecting, o score é o percentil do preço em cada fila; não se estima propensão.
+
+`TOP_5_SELLER` marca as cinco maiores prioridades cobertas por vendedor, incluindo fallback. `FOLLOWUP_AUTOMATIZADO` marca somente os top 5 com `MODEL_FULL`; é regra operacional de cadência e não variável do modelo. Confiança é separada do score.
+
+A auditoria independente reproduz 2.089 abertos e a divisão 89/209/1.291/500. Seu teste forward 30 explora regras diferentes e não verifica os resultados finais do método D reportados pela Sam. O handoff registra para D 255 vitórias e US$ 1.347.335 capturados no top 5 por vendedor em seis cortes, com AUC média 0,658. Como o código e os outputs originais da Sam faltam, esses resultados são referência histórica reportada, não uma validação executada nesta entrega. O artefato treinado nesta entrega é reprodutível pelo `train.py`, mas suas métricas não devem ser equiparadas a esse benchmark.
+
+Limitações adicionais: campos de conta são estáticos e podem refletir informação posterior aos cortes históricos; a V1 não possui histórico para corrigir isso. O máximo de 138 dias foi observado entre negócios encerrados, não é um limite causal ou prazo de expiração. A ausência de conta não é penalidade preditiva, embora defina uma ação de enriquecimento.

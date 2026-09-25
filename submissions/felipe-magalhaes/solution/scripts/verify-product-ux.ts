@@ -1,0 +1,23 @@
+import assert from "node:assert/strict";
+import type { CrmDeal } from "../src/domain/deals/deal";
+import { compareOperationalDeals, sortDealsByScore, sortOperationalDeals } from "../src/services/crm/operational-order";
+import { DEFAULT_COLUMNS } from "../src/components/deals/deals-list";
+import type { ScoresByDeal } from "../src/services/scoring/score-snapshot";
+import type { PriorityResult } from "../src/domain/scoring/scoring-engine";
+
+const make = (id:string,value:number): CrmDeal => ({ id,account:id,accountKnown:false,sector:null,revenue:null,employees:null,yearEstablished:null,subsidiaryOf:null,agent:"A",manager:"M",region:"R",product:"P",series:"S",stage:"Prospecting",status:"OPEN",funnelId:"default",stageId:"prospecting",value,salesPrice:value,engageDate:null,closeDate:null });
+const deals = [make("a",50000),make("b",80000),make("c",200000),make("d",15000),make("e",90000)];
+const sample: PriorityResult = { priorityScore:100,scoreBasis:"PROSPECTING_VALUE",confidence:"LOW",action:"ACTION_QUALIFY_PROSPECTING",reason:"",nextAction:"",limitation:"",systemSignals:[] };
+const scores: ScoresByDeal = { a:{...sample,priorityScore:100},b:{...sample,priorityScore:100},c:{...sample,priorityScore:99},d:{...sample,priorityScore:100} };
+assert.deepEqual(sortOperationalDeals(deals,scores).map((deal) => deal.id),["b","a","d","c","e"]);
+assert(compareOperationalDeals(deals[1],deals[2],scores)<0,"Score domina Valor");
+assert.deepEqual(sortOperationalDeals([...deals].reverse(),scores).map((deal) => deal.id),["b","a","d","c","e"]);
+const manualDeals = [...deals,make("aa",80000)];
+const manualScores: ScoresByDeal = { ...scores,aa:{...sample,priorityScore:100} };
+assert.deepEqual(sortDealsByScore(manualDeals,manualScores,"desc").map((deal) => deal.id),["aa","b","a","d","c","e"]);
+assert.deepEqual(sortDealsByScore(manualDeals,manualScores,"asc").map((deal) => deal.id),["c","aa","b","a","d","e"]);
+const stageGroups = new Map<string,CrmDeal[]>([["first",deals],["second",[make("x",3000),make("y",9000)]]]);
+assert.deepEqual(sortOperationalDeals(stageGroups.get("first")!,scores).map((deal) => deal.id),["b","a","d","c","e"]);
+assert.deepEqual(sortOperationalDeals(stageGroups.get("second")!,scores).map((deal) => deal.id),["y","x"]);
+assert.deepEqual(DEFAULT_COLUMNS,["account","score","tier","action","reason","task","agent","value","stage","product","evidence","id"]);
+console.log("TESTE 2 PASS: ordenação do universo, desempate por Valor, sem Score ao fim e 12 colunas padrão.");
