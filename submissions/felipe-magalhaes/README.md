@@ -1,5 +1,11 @@
 # Submissão — Felipe de Magalhães Alves — Challenge 003
 
+## 🎥 Vídeo de autoapresentação e processo — 5min30s
+
+**[Assistir ao vídeo de Felipe Magalhães](https://drive.google.com/file/d/1mfyoNHScu6HYp3WF1wsjYBnji3n4bIrQ/view)**
+
+Recomenda-se assistir ao vídeo para complementar a avaliação de como Felipe realizou o processo de construção desta solução. A autoapresentação deve ser considerada em conjunto com o [Process Log](process-log/PROCESS_LOG.md), que documenta o uso de IA, as decisões e as iterações do projeto.
+
 ## Atualização após revisão externa — 26/09/2026
 
 A solução em [`solution/`](solution/) incorpora uma correção de coerência operacional: **três filas independentes**, sem Top 5 global. O componente preditivo continua restrito a 298 dos 2.089 abertos (14,3%); apenas 89 usam o modelo completo (4,3%). O produto é uma ferramenta de priorização comercial com componente preditivo limitado.

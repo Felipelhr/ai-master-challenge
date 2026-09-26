@@ -1,5 +1,11 @@
 # Process Log — Challenge 003 / G4 Lead Scorer
 
+## 🎥 Autoapresentação de Felipe — 5min30s
+
+**[Assistir ao vídeo de autoapresentação e processo](https://drive.google.com/file/d/1mfyoNHScu6HYp3WF1wsjYBnji3n4bIrQ/view)**
+
+O vídeo complementa este registro escrito e ajuda a avaliar como Felipe realizou o processo de construção da solução. Recomenda-se assisti-lo junto às evidências e decisões documentadas abaixo. Foi acrescentado posteriormente à entrega inicial; as menções históricas à ausência de gravação foram preservadas como registro daquela etapa.
+
 > As seções 1–6 e suas capturas preservam o registro da entrega inicial. A [seção 7](#7-revisão-externa-e-correção-de-coerência--26092026) documenta a revisão posterior; as referências anteriores ao ranking único não descrevem a versão atual.
 
 **Responsável:** Felipe de Magalhães Alves.
