@@ -2,7 +2,7 @@
 
 ## Escopo, fonte e proveniência
 
-Esta nota descreve a lógica executada em [`../solution/`](../solution/) no estado congelado do produto (`7f3d349`). As fontes diretas são os cinco CSVs em `solution/data/`, o construtor [`build-model-artifact.py`](../solution/scripts/scoring/build-model-artifact.py), o artefato [`model-artifact.json`](../solution/src/domain/scoring/model-artifact.json), o motor [`engine.ts`](../solution/src/domain/scoring/engine.ts), a fixture legada e os scripts de verificação. O benchmark A/B/C/D é **reportado no handoff da análise anterior**, citado no inventário de fontes; seus scripts e outputs originais não foram disponibilizados nesta entrega. A paridade com o protótipo foi verificada separadamente e não reproduz aquele benchmark.
+Esta nota descreve a lógica histórica preservada e a correção posterior de filas executada em [`../solution/`](../solution/) a partir do produto originalmente congelado (`7f3d349`) e publicado em `b63d22e`. A atualização mantém coeficientes, propensões, referências e percentis internos; altera sua utilização operacional. As fontes diretas são os cinco CSVs em `solution/data/`, o construtor [`build-model-artifact.py`](../solution/scripts/scoring/build-model-artifact.py), o artefato [`model-artifact.json`](../solution/src/domain/scoring/model-artifact.json), o motor [`engine.ts`](../solution/src/domain/scoring/engine.ts), a fixture legada e os scripts de verificação. O benchmark A/B/C/D é **reportado no handoff da análise anterior**, citado no inventário de fontes; seus scripts e outputs originais não foram disponibilizados nesta entrega. A paridade com o protótipo foi verificada separadamente e não reproduz aquele benchmark.
 
 ## Dados e joins
 
@@ -14,7 +14,7 @@ O arquivo `sales_pipeline.csv` tem 8.800 linhas e `opportunity_id` como identifi
 
 Produto e vendedor sem correspondência são erros; conta ausente permanece uma situação válida, sem firmografia inventada. O script de construção do artefato exige cardinalidade preservada e preço/gestor presentes. `accounts.revenue` representa **receita anual em milhões de USD** conforme `metadata.csv`; `sales_price` é preço sugerido do produto e `close_value` é valor do negócio encerrado. Para oportunidades abertas e perdidas, a interface exibe o preço sugerido; para ganhas, o valor de fechamento. O scorer usa `salesPrice` para formar a dimensão econômica, não `close_value`.
 
-O snapshot operacional é **31/12/2017**: 500 Prospecting, 1.589 Engaging, 4.238 Won e 2.473 Lost. Somente 2.089 oportunidades abertas recebem Score operacional. A distribuição das bases é 89 `MODEL_FULL`, 209 `AGE_ONLY_FALLBACK`, 1.291 `OUT_OF_COVERAGE_VALUE` e 500 `PROSPECTING_VALUE`.
+O snapshot operacional é **31/12/2017**: 500 Prospecting, 1.589 Engaging, 4.238 Won e 2.473 Lost. As 2.089 abertas recebem resultado interno de inteligência; apenas as 298 de Venda ativa exibem Score temporal. A distribuição das bases é 89 `MODEL_FULL`, 209 `AGE_ONLY_FALLBACK`, 1.291 `OUT_OF_COVERAGE_VALUE` e 500 `PROSPECTING_VALUE`.
 
 ## Corte temporal, alvo e controle de vazamento
 
@@ -24,9 +24,9 @@ O limite de 138 dias é o horizonte observado usado pelo modelo, não um prazo c
 
 **Risco residual:** as características das empresas provêm de um snapshot cadastral, não de versões datadas em cada corte. Receita, funcionários e setor podem refletir informação posterior ao corte histórico. O controle acima impede uso direto do desfecho como feature, mas **não elimina esse possível vazamento retrospectivo**. Cortes mensais também repetem oportunidades; suas linhas não são observações independentes. Sem scripts originais do benchmark e sem histórico cadastral point-in-time, não se reivindica validação prospectiva ou calibração atual.
 
-## Hipóteses A/B/C/D e escolha
+## Hipóteses A/B/C/D e escolha histórica
 
-O handoff anterior compara Top 5 por vendedor em seis cortes:
+Os números a seguir são **registro histórico não reproduzido**, não evidência atual de desempenho. O [novo benchmark reproduzível](BENCHMARK_REPRODUCIBLE.md) tem protocolo explícito, resultados distintos e AUC inferior à antiga reportada. O handoff anterior compara Top 5 por vendedor em seis cortes:
 
 | Método | Hipótese | Ganhos reportados | Receita reportada |
 | --- | --- | ---: | ---: |
@@ -53,7 +53,7 @@ p_faixa = (ganhos_30d_na_faixa + 20 × taxa_global) / (observações_na_faixa + 
 
 O parâmetro de suavização **20** reduz a influência de faixas com menos observações. O produto participa da prioridade econômica, mas a falta da conta **não reduz diretamente a propensão nem o Score como penalidade**. A análise recebe evidência **Menor** (`LOW`) e ação de enriquecer a conta. `ACCOUNT_MISSING` e `AGE_ONLY_FALLBACK` são sinais de explicação, não um julgamento de qualidade do negócio.
 
-## Valor de prioridade, Score relativo e quatro filas
+## Valor de prioridade, Score relativo e três filas operacionais
 
 Em `MODEL_FULL` e `AGE_ONLY_FALLBACK`:
 
@@ -63,17 +63,17 @@ priorityValue = propensity30d × salesPrice
 
 O `priorityValue` é usado para posicionar o negócio na **distribuição congelada dos 298 valores cobertos**; não é receita prevista da carteira. O Score inteiro de 0–100 é posição relativa dessa distribuição. Empates usam posição central na referência, com ajuste para os negócios que pertencem ao snapshot congelado, e arredondamento determinístico. O motor não retreina quando filtros ou novos negócios mudam o universo visualizado.
 
-Acima de 138 dias em Engaging, `OUT_OF_COVERAGE_VALUE` usa **percentil do preço sugerido na referência congelada da fila de revalidação**, sem `propensity30d` e sem `priorityValue`. A ação é fazer contato de revalidação antes de considerar congelamento. Em Prospecting, `PROSPECTING_VALUE` usa **percentil do preço sugerido na referência da fila de qualificação**, também sem propensão temporal, com ação de qualificar necessidade, contato e prazo. Assim, todos os abertos recebem Score operacional, mas **apenas 298/2.089** têm estimativa temporal. Valores iguais de Score entre bases diferentes não implicam probabilidade ou qualidade de evidência idênticas.
+Acima de 138 dias em Engaging, `OUT_OF_COVERAGE_VALUE` usa **percentil do preço sugerido na referência congelada da fila de revalidação**, sem `propensity30d` e sem `priorityValue`. A ação é fazer contato de revalidação antes de considerar congelamento. Em Prospecting, `PROSPECTING_VALUE` usa **percentil do preço sugerido na referência da fila de qualificação**, também sem propensão temporal, com ação de qualificar necessidade, contato e prazo. Esses percentis econômicos continuam no resultado interno para manter compatibilidade histórica, mas **não são exibidos como Score nem comparados à fila temporal**. A UI mostra valor, finalidade e posição local. Apenas 298/2.089 têm estimativa temporal. Quatro bases de cálculo correspondem a três filas: modelo e fallback compartilham Venda ativa; as outras são Revalidação e Qualificação.
 
 Novas oportunidades usam a referência congelada em modo `reference`; os negócios do snapshot histórico usam modo `snapshot`. A simulação e o cadastro de uma mesma oportunidade nova chamam a mesma regra `reference`, preservando Score, base, evidência, ação e sinais. O motor devolve `null` para Won/Lost: não há Score operacional atual para negócios encerrados.
 
 ## Ordenação, Tier, evidência e ação
 
-O ranking filtra primeiro oportunidades **abertas e com Score**. Em seguida, Lista, Kanban e Top 5 aplicam **Score DESC → Valor exibido DESC → ID**. O Top 5 é uma consulta dinâmica, não um campo persistido ou tag. Os filtros selecionam o universo e não recalculam o artefato, o Score ou o Lead Tier. O mesmo serviço de ranking alimenta Prioridades, Tarefas, Dashboard e digest de e-mail.
+O ranking filtra oportunidades abertas e separa as filas **antes** de selecionar até cinco itens em cada uma. Venda ativa aplica **Score DESC → Valor exibido DESC → ID**; Revalidação e Qualificação aplicam **Valor exibido DESC → ID**. Lista e Kanban mantêm cabeçalhos explícitos por grupo, inclusive na ordenação manual. O Top 5 é uma consulta dinâmica por fila, não tag. A ordem visual dos grupos não aloca tempo nem estabelece precedência comercial entre eles. Os filtros numéricos de Score e as métricas agregadas desse Score são exclusivos de Venda ativa. A consulta é compartilhada por Prioridades, Tarefas, Dashboard e digest. Modelo e fallback estimam o mesmo alvo e compartilham referência, mas sua calibração comparativa não é presumida.
 
-Lead Tier é uma dimensão comercial descritiva A+–E: 50% percentil fixo do preço sugerido, 25% receita, 10% funcionários e 15% completude cadastral de seis campos (conta, setor, ano de fundação, receita, funcionários e localização). Receita e funcionários ausentes recebem referência neutra 0,50; sua ausência também afeta a completude. Controladora não é campo obrigatório de completude. Tier não altera Score, não é probabilidade e não define sozinho Top 5. Suas referências congeladas derivam do dataset e permanecem fixas com filtros e novas oportunidades.
+Lead Tier é uma heurística comercial descritiva A+–E, com pesos de julgamento e sem validação preditiva própria: 50% percentil fixo do preço sugerido, 25% receita, 10% funcionários e 15% completude cadastral de seis campos (conta, setor, ano de fundação, receita, funcionários e localização). Receita e funcionários ausentes recebem referência neutra 0,50; sua ausência também afeta a completude. Controladora não é campo obrigatório de completude. Tier não altera Score, não é probabilidade e não define sozinho Top 5. Suas referências congeladas derivam do dataset e permanecem fixas com filtros e novas oportunidades.
 
-Qualidade da Evidência traduz os códigos internos `MEDIUM`/`LOW` em **Maior/Menor**. Maior acompanha modelo completo; Menor acompanha fallback, fora da cobertura e prospecção. Ela mede suporte informacional, não potencial comercial ou chance de fechar. Ação Recomendada é uma orientação condicional à base: trabalhar agora, enriquecer a conta, última tentativa antes de considerar congelamento ou qualificar. Motivo, limitação e próxima ação ficam disponíveis no detalhe.
+Qualidade da Evidência traduz os códigos internos `MEDIUM`/`LOW` em **Maior/Menor**. Maior acompanha modelo completo; Menor acompanha fallback, fora da cobertura e prospecção. Ela mede suporte informacional, não potencial comercial ou chance de fechar. Ação Recomendada é uma orientação condicional à base: trabalhar agora, enriquecer a conta, revalidar por contato, sem presumir perda ou qualificar. Motivo, limitação e próxima ação ficam disponíveis no detalhe.
 
 ## Artefato e verificações
 

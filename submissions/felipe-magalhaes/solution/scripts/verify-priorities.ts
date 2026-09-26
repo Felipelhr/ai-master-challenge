@@ -11,6 +11,7 @@ import reference from "../src/domain/tiering/reference.json" with { type: "json"
 import { scoreSnapshot } from "../src/services/scoring/score-snapshot";
 import { tierSnapshot } from "../src/services/tiering/tier-snapshot";
 import { emptyPriorityFilters, rankTopFive, type PriorityFilters } from "../src/services/priorities/rank-top-five";
+import { PRIORITY_QUEUES, priorityQueue, hasTemporalScore } from "../src/domain/scoring/priority-queue";
 import { sortOperationalDeals } from "../src/services/crm/operational-order";
 
 function rows<T>(filename: string): T[] {
@@ -53,18 +54,30 @@ console.log(`TESTE 1: Lead Tier/evidência PASS; distribuição=${JSON.stringify
 // Bloco 2 — ranking e filtros do produto.
 const empty = rankTopFive(deals, scores, tiers, []);
 assert.equal(empty.eligibleCount, 2089);
-assert.equal(empty.items.length, 5);
-assert(empty.items.every(isOpenDeal));
-for (let index = 1; index < empty.items.length; index++) assert(scores[empty.items[index - 1].id].priorityScore >= scores[empty.items[index].id].priorityScore);
-assert.deepEqual(empty.items.map((deal) => deal.id),sortOperationalDeals(open,scores).slice(0,5).map((deal) => deal.id));
+assert.deepEqual(empty.queues.map((group) => group.eligibleCount), [298, 1291, 500]);
+assert.equal(empty.queues.reduce((n, group) => n + group.eligibleCount, 0), 2089);
+for (const group of empty.queues) {
+  assert.equal(group.items.length, 5);
+  assert(group.items.every((deal) => isOpenDeal(deal) && priorityQueue(scores[deal.id]) === group.queue));
+  const universe = open.filter((deal) => priorityQueue(scores[deal.id]) === group.queue);
+  assert.deepEqual(group.items.map((deal) => deal.id), sortOperationalDeals(universe,scores).slice(0,5).map((deal) => deal.id));
+  assert.deepEqual(rankTopFive([...deals].reverse(), scores, tiers, [], { ...emptyPriorityFilters, queue: group.queue }).queues[0].items.map((deal) => deal.id), group.items.map((deal) => deal.id));
+  for (let i = 1; i < group.items.length; i++) {
+    const left = group.items[i-1], right = group.items[i];
+    if (group.queue === "SELL") assert(scores[left.id].priorityScore >= scores[right.id].priorityScore);
+    else assert(left.value >= right.value);
+  }
+}
+// No global items array: callers must choose a queue or render all queues separately.
+assert(!("items" in empty));
 const example = open.slice(0,3).map((deal,index) => ({ ...deal, id: ["value-20k","value-80k","value-500k"][index], value: [20000,80000,500000][index] }));
 const exampleScores = {
-  "value-20k": { ...scores[open[0].id], priorityScore: 100, priorityValue: 900000 },
-  "value-80k": { ...scores[open[1].id], priorityScore: 100, priorityValue: 1 },
-  "value-500k": { ...scores[open[2].id], priorityScore: 99, priorityValue: 999999 },
+  "value-20k": { ...scores[empty.queues[0].items[0].id], priorityScore: 100, priorityValue: 900000 },
+  "value-80k": { ...scores[empty.queues[0].items[0].id], priorityScore: 100, priorityValue: 1 },
+  "value-500k": { ...scores[empty.queues[0].items[0].id], priorityScore: 99, priorityValue: 999999 },
 };
-assert.deepEqual(rankTopFive(example,exampleScores,{},[]).items.map((deal) => deal.id),["value-80k","value-20k","value-500k"]);
-const referenceDeal = empty.items[0];
+assert.deepEqual(rankTopFive(example,exampleScores,{},[]).queues[0].items.map((deal) => deal.id),["value-80k","value-20k","value-500k"]);
+const referenceDeal = empty.queues[0].items[0];
 const sectorDeal = open.find((deal) => Boolean(deal.sector))!;
 const tagId = scores[referenceDeal.id].systemSignals[0];
 const links = open.flatMap((deal) => scores[deal.id].systemSignals.map((signal) => ({ dealId: deal.id, tagId: signal })));
@@ -84,7 +97,7 @@ for (const [key, value, predicate] of cases) {
   if (!value) continue;
   const result = rankTopFive(deals, scores, tiers, links, { ...emptyPriorityFilters, [key]: value });
   assert(result.eligibleCount > 0, `${key} deve retornar candidatos`);
-  assert(result.items.every(predicate), `${key} deve filtrar antes do ranking`);
+  assert(result.queues.flatMap((group) => group.items).every(predicate), `${key} deve filtrar antes do ranking`);
 }
 const combined = rankTopFive(deals, scores, tiers, links, {
   ...emptyPriorityFilters, agent: referenceDeal.agent, manager: referenceDeal.manager,
@@ -92,7 +105,24 @@ const combined = rankTopFive(deals, scores, tiers, links, {
   confidence: scores[referenceDeal.id].confidence, action: scores[referenceDeal.id].action,
   minScore: String(scores[referenceDeal.id].priorityScore), maxScore: String(scores[referenceDeal.id].priorityScore),
 });
-assert(combined.items.some((deal) => deal.id === referenceDeal.id));
-assert(combined.items.every((deal) => deal.agent === referenceDeal.agent && deal.product === referenceDeal.product));
+assert(combined.queues.flatMap((group) => group.items).some((deal) => deal.id === referenceDeal.id));
+assert(combined.queues.flatMap((group) => group.items).every((deal) => deal.agent === referenceDeal.agent && deal.product === referenceDeal.product));
 assert(!links.some((link) => String(link.tagId) === "TOP_5_SELLER"));
-console.log(`TESTE 2: Top 5/filtros PASS; padrão=${empty.items.map((deal) => deal.id).join(",")}`);
+console.log(`TESTE 2: Top 5/filtros PASS; padrão=${empty.queues[0].items.map((deal) => deal.id).join(",")}`);
+
+for (const queue of PRIORITY_QUEUES) {
+  const selected = rankTopFive(deals, scores, tiers, links, { ...emptyPriorityFilters, queue });
+  assert.equal(selected.queues.length, 1);
+  assert.equal(selected.queues[0].queue, queue);
+}
+const scoreFilter = rankTopFive(deals, scores, tiers, links, { ...emptyPriorityFilters, minScore: "90" });
+assert(scoreFilter.queues.flatMap((group) => group.items).every((deal) => hasTemporalScore(scores[deal.id])));
+const legacyFilters = { ...emptyPriorityFilters };
+delete legacyFilters.queue;
+assert.deepEqual(rankTopFive(deals,scores,tiers,links,legacyFilters),rankTopFive(deals,scores,tiers,links));
+const out = empty.queues[1].items[0];
+assert.equal(scores[out.id].priorityScore,99);
+assert(!empty.queues[0].items.some((deal) => deal.id === out.id), "Revalidação 99 não compete com Venda ativa");
+const adversarial = example.map((deal) => ({ ...deal }));
+const economicScores = Object.fromEntries(adversarial.map((deal, i) => [deal.id, { ...scores[out.id], priorityScore: [100, 50, 1][i] }]));
+assert.deepEqual(rankTopFive(adversarial,economicScores,{},[]).queues[1].items.map((deal) => deal.id),["value-500k","value-80k","value-20k"],"Fila econômica usa valor, nunca o percentil antigo");

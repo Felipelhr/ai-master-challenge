@@ -17,7 +17,7 @@ export const EVIDENCE_HELP = "Indica o nível relativo de suporte informacional 
 export const ACTION_LABELS: Record<ActionCode, string> = {
   ACTION_WORK_NOW: "Trabalhar agora",
   ACTION_ENRICH_ACCOUNT: "Enriquecer dados da conta",
-  ACTION_LAST_CONTACT_BEFORE_FREEZE: "Última tentativa antes de congelar",
+  ACTION_LAST_CONTACT_BEFORE_FREEZE: "Revalidar por contato",
   ACTION_QUALIFY_PROSPECTING: "Qualificar oportunidade",
 };
 

@@ -1,6 +1,7 @@
 import type { CrmSnapshot } from "@/services/crm/crm-service";
 import { filterPriorityDeals, rankTopFive, type PriorityFilters } from "@/services/priorities/rank-top-five";
 import { ACTION_LABELS, CONFIDENCE_LABELS } from "@/domain/scoring/labels";
+import { hasTemporalScore } from "@/domain/scoring/priority-queue";
 import { LEAD_TIERS } from "@/domain/tiering/lead-tier";
 
 export const PRIORITIZED_SCORE_CUTOFF = 80;
@@ -17,7 +18,8 @@ export function dashboardMetrics(snapshot: CrmSnapshot, filters: PriorityFilters
   const totalValue = deals.reduce((sum, deal) => sum + deal.value, 0);
   const workNow = deals.filter((deal) => snapshot.scores[deal.id].action === "ACTION_WORK_NOW");
   const premium = deals.filter((deal) => ["A+", "A"].includes(snapshot.tiers[deal.id]?.tier ?? ""));
-  const prioritized = deals.filter((deal) => snapshot.scores[deal.id].priorityScore >= PRIORITIZED_SCORE_CUTOFF);
+  const temporal = deals.filter((deal) => hasTemporalScore(snapshot.scores[deal.id]));
+  const prioritized = temporal.filter((deal) => snapshot.scores[deal.id].priorityScore >= PRIORITIZED_SCORE_CUTOFF);
   const aggregate = (items: typeof deals) => ({ count: items.length, value: items.reduce((sum, deal) => sum + deal.value, 0) });
   const bucket = (label: string, items: typeof deals): Bucket => ({ label, ...aggregate(items) });
   const stages = snapshot.stages.filter((stage) => stage.category === "OPEN" && (stage.active || deals.some((deal) => deal.stageId === stage.id)))
@@ -34,7 +36,8 @@ export function dashboardMetrics(snapshot: CrmSnapshot, filters: PriorityFilters
   return {
     open: { count: deals.length, value: totalValue },
     workNow: aggregate(workNow), premium: aggregate(premium), prioritized: aggregate(prioritized),
-    averageScore: deals.length ? deals.reduce((sum, deal) => sum + snapshot.scores[deal.id].priorityScore, 0) / deals.length : 0,
+    temporal: aggregate(temporal),
+    averageScore: temporal.length ? temporal.reduce((sum, deal) => sum + snapshot.scores[deal.id].priorityScore, 0) / temporal.length : null,
     stages, actions, tiers, evidence,
     tasks: {
       pending: tasks.filter((task) => task.status === "PENDING").length,

@@ -35,7 +35,7 @@ export function EmailDigestPanel({ scope, initialSchedules, available }: { scope
   }
   const summary = (filters: PriorityFilters) => Object.entries(filters).filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`).join(" · ") || "Toda a carteira";
   return <section className="email-panel">
-    <header><div><span className="priority-eyebrow">RESUMO OPERACIONAL</span><h2>Suas prioridades por e-mail</h2><p>O mesmo Top 5 do recorte atual, com ação e próxima tarefa.</p></div></header>
+    <header><div><span className="priority-eyebrow">RESUMO OPERACIONAL</span><h2>Suas prioridades por e-mail</h2><p>Até cinco oportunidades por fila, com ação e próxima tarefa. As posições não são comparáveis entre filas.</p></div></header>
     <div className="email-form-row"><label>Destinatário<input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="nome@empresa.com" /></label><div className="email-buttons"><Button variant="outline" disabled={busy} onClick={() => perform(async () => { const result = await previewPriorityEmail(scope); setPreview(result.text); setFeedback(`Prévia: ${result.ids.length} prioridades.`); })}>Pré-visualizar</Button><Button disabled={busy || !available || !validRecipient} onClick={() => perform(async () => { await sendPriorityEmail(recipient, scope); setFeedback("Resumo enviado."); })}>Enviar agora</Button></div></div>
     {!available && <p className="email-availability">Envio real indisponível até configurar RESEND_API_KEY e RESEND_FROM_EMAIL. Prévia e agendamentos continuam disponíveis.</p>}
     {preview && <pre className="email-preview">{preview}</pre>}

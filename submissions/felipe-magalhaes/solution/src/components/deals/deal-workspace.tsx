@@ -1,5 +1,6 @@
 "use client";
 
+import { priorityCaption } from "@/domain/scoring/priority-queue";
 import { useState } from "react";
 import { ClipboardList, Database, NotebookPen, Sparkles, Tags, X } from "lucide-react";
 import { STATUS_LABELS, type CrmDeal, type DealStatus } from "@/domain/deals/deal";
@@ -91,7 +92,7 @@ export function DealWorkspace({ deal, score, tier, stages, funnels, tasks, nextT
                 <dt>Vendedor</dt><dd>{deal.agent}</dd>
                 <dt>Produto</dt><dd>{deal.product}</dd>
                 <dt>Valor</dt><dd>{currency.format(deal.value)}</dd>
-                <dt>Score de Prioridade</dt><dd>{score?.priorityScore ?? "—"}</dd>
+                <dt>Prioridade na fila</dt><dd>{priorityCaption(score)}</dd>
                 <dt>Lead Tier</dt><dd>{tier?.tier ?? "—"}</dd>
                 <dt title={EVIDENCE_HELP}>Qualidade da Evidência</dt><dd>{score ? CONFIDENCE_LABELS[score.confidence] : "—"}</dd>
                 <dt>Ação Recomendada</dt><dd>{score ? ACTION_LABELS[score.action] : "—"}</dd>

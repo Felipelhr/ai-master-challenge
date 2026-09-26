@@ -117,7 +117,7 @@ def build() -> dict:
     digest = hashlib.sha256()
     for filename in DATA_FILES:
         digest.update(filename.encode("utf-8"))
-        digest.update((DATA / filename).read_bytes())
+        digest.update((DATA / filename).read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
 
     return {
         "version": "1.0.0",

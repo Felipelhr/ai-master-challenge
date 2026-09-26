@@ -60,7 +60,7 @@ try {
   assert.equal(snapshot.deals.find((deal) => deal.id === created.id)?.status,"WON");
   assert.equal(snapshot.scores[created.id],undefined);
   assert.equal(displayStageId(snapshot.deals.find((deal) => deal.id === created.id)!),FINALIZATION_STAGE_ID);
-  assert(!rankTopFive(snapshot.deals,snapshot.scores,snapshot.tiers,snapshot.dealTags).items.some((deal) => deal.id === created.id));
+  assert(!rankTopFive(snapshot.deals,snapshot.scores,snapshot.tiers,snapshot.dealTags).queues.flatMap((group) => group.items).some((deal) => deal.id === created.id));
   snapshot = performCrmOperation(base,store,{ kind:"deal.status",dealId:created.id,status:"LOST" });
   assert.equal(snapshot.deals.find((deal) => deal.id === created.id)?.stageId,stage.id);
   snapshot = performCrmOperation(base,store,{ kind:"deal.status",dealId:created.id,status:"OPEN" });
@@ -87,7 +87,7 @@ try {
   const dashboard = dashboardMetrics(baseline,emptyPriorityFilters,"all");
   const digest = priorityDigest(baseline,emptyPriorityFilters);
   assert.equal(dashboard.open.count,2089);
-  assert.deepEqual(digest.items.map((item) => item.id),dashboard.topFive.items.map((deal) => deal.id));
+  assert.deepEqual(digest.items.map((item) => item.id),dashboard.topFive.queues.flatMap((group) => group.items).map((deal) => deal.id));
   const oldScope = { ...emptyPriorityFilters } as Partial<PriorityFilters>;
   delete oldScope.funnelId;
   const emailRepo = createEmailRepository(path.join(folder,"schedule.sqlite"));

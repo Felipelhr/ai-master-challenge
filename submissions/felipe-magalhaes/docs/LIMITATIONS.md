@@ -13,19 +13,19 @@ Esta lista distingue o que a solução local em [`../solution/`](../solution/) v
 ## Estatística e metodologia
 
 - **Cobertura observada até 138 dias:** além desse horizonte o modelo não extrapola uma propensão de 30 dias. O corte é limite de suporte histórico, não regra causal de perda. Na carteira aberta, 1.291 Engaging estão fora da cobertura e 500 Prospecting não têm tempo em negociação; só 298 de 2.089 abertos recebem estimativa temporal.
-- **Score não é probabilidade:** é posição relativa de prioridade de 0 a 100 em distribuições de referência congeladas. Valores de bases diferentes podem ter a mesma escala, mas suportes informacionais distintos. O Score não é previsão de receita nem decisão automática de encerramento.
+- **Score não é probabilidade:** é posição relativa de prioridade de 0 a 100 em distribuições de referência congeladas. Os percentis econômicos legados permanecem internos e não entram em um ranking global. O Score exibido, seus filtros e sua média são restritos à Venda ativa. Qualificação e Revalidação mostram ordem por valor. A divisão de atenção entre filas não foi validada e fica com o usuário. O Score não é previsão de receita nem decisão automática de encerramento.
 - **Lead Tier não é probabilidade:** é classificação descritiva de potencial/completude com referência fixa. Não altera o Score nem define sozinho o Top 5.
 - **Amostras temporais repetidas:** um negócio pode aparecer em mais de um corte mensal de treino. As linhas não são independentes; a documentação não atribui precisão estatística a uma contagem simples de linhas.
-- **Benchmark A/B/C/D reportado, não reexecutado:** o handoff anterior contém os resultados e seis cortes, mas os scripts e outputs originais não acompanham esta solução. A fixture legada testa compatibilidade da implementação, não reproduz o benchmark da Sam nem prova calibração ou retorno financeiro futuro.
+- **Benchmark A/B/C/D legado reportado, não reexecutado:** o handoff anterior contém os resultados e seis cortes, mas os scripts e outputs originais não acompanham esta solução. A fixture legada testa compatibilidade da implementação, não reproduz o benchmark da Sam nem prova calibração ou retorno financeiro futuro. Um [novo benchmark independente](BENCHMARK_REPRODUCIBLE.md) acompanha esta atualização: D seleciona 198 ganhos contra 165 de A, com AUC média 0,541, sob as restrições ali documentadas. O limite de 138 dias e o desenho de features já eram conhecidos a partir do dataset; não é validação prospectiva nem conjunto intocado.
 - **Mudança de população:** contas, produtos, preços, processo e mercado podem diferir da amostra de 2017. O artefato congelado requer monitoramento e recalibração futura com dados mais recentes e desfechos observados.
-- **Survivor bias / negócios antigos:** comparar apenas encerrados ou usar idade como sinônimo de qualidade pode ignorar os abertos ainda sem desfecho. A fila de revalidação preserva esses negócios sem atribuir automaticamente propensão baixa ou alta.
+- **Survivor bias / negócios antigos:** comparar apenas encerrados ou usar idade como sinônimo de qualidade pode ignorar os abertos ainda sem desfecho. A fila de revalidação preserva esses negócios sem atribuir automaticamente propensão baixa ou alta. Tampouco os coloca acima de Venda ativa por um percentil de preço.
 
 ## Operação comercial
 
 - **Ação não substitui julgamento:** “trabalhar agora”, “enriquecer”, “revalidar” e “qualificar” são orientações geradas pelas bases disponíveis. Contato, necessidade, prazo e qualidade dos dados precisam de confirmação humana.
 - **Status e etapa:** o Kanban mostra ganhos e perdidos em Finalização para evitar desaparecimento visual. A apresentação dessa coluna não reconstrói uma sequência histórica de etapas ausente nos CSVs.
 - **Data do snapshot:** o cálculo temporal está ancorado em 31/12/2017 e o cadastro novo impõe datas compatíveis. A aplicação é uma demonstração da lógica validada; não se deve aplicar o artefato sem recalibração a um pipeline atual como se o tempo histórico continuasse vigente.
-- **Filtros e Top 5:** a consulta reordena o universo aberto filtrado; mudanças nos filtros alteram quem aparece, não os parâmetros do modelo. O Top 5 é uma fila de trabalho, não uma garantia de cinco vitórias.
+- **Filtros e Top 5:** a consulta separa o universo aberto filtrado e seleciona até cinco por fila; mudanças nos filtros alteram quem aparece, não os parâmetros do modelo. Cada Top 5 é local à sua fila, não uma garantia de cinco vitórias ou uma prioridade entre filas.
 
 ## Infraestrutura
 

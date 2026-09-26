@@ -7,7 +7,7 @@ import type { PriorityResult } from "../src/domain/scoring/scoring-engine";
 
 const make = (id:string,value:number): CrmDeal => ({ id,account:id,accountKnown:false,sector:null,revenue:null,employees:null,yearEstablished:null,subsidiaryOf:null,agent:"A",manager:"M",region:"R",product:"P",series:"S",stage:"Prospecting",status:"OPEN",funnelId:"default",stageId:"prospecting",value,salesPrice:value,engageDate:null,closeDate:null });
 const deals = [make("a",50000),make("b",80000),make("c",200000),make("d",15000),make("e",90000)];
-const sample: PriorityResult = { priorityScore:100,scoreBasis:"PROSPECTING_VALUE",confidence:"LOW",action:"ACTION_QUALIFY_PROSPECTING",reason:"",nextAction:"",limitation:"",systemSignals:[] };
+const sample: PriorityResult = { priorityScore:100,scoreBasis:"MODEL_FULL",confidence:"LOW",action:"ACTION_QUALIFY_PROSPECTING",reason:"",nextAction:"",limitation:"",systemSignals:[] };
 const scores: ScoresByDeal = { a:{...sample,priorityScore:100},b:{...sample,priorityScore:100},c:{...sample,priorityScore:99},d:{...sample,priorityScore:100} };
 assert.deepEqual(sortOperationalDeals(deals,scores).map((deal) => deal.id),["b","a","d","c","e"]);
 assert(compareOperationalDeals(deals[1],deals[2],scores)<0,"Score domina Valor");

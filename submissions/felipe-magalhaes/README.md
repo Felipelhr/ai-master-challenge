@@ -1,5 +1,38 @@
 # Submissão — Felipe de Magalhães Alves — Challenge 003
 
+## Atualização após revisão externa — 26/09/2026
+
+A solução em [`solution/`](solution/) incorpora uma correção de coerência operacional: **três filas independentes**, sem Top 5 global. O componente preditivo continua restrito a 298 dos 2.089 abertos (14,3%); apenas 89 usam o modelo completo (4,3%). O produto é uma ferramenta de priorização comercial com componente preditivo limitado.
+
+| Fila | Oportunidades no snapshot | Ordem dentro da fila |
+| --- | ---: | --- |
+| Venda ativa | 298 (89 modelo + 209 fallback) | Score DESC → Valor exibido DESC → ID |
+| Revalidação | 1.291 | Valor exibido DESC → ID, sem Score temporal |
+| Qualificação | 500 | Valor exibido DESC → ID, sem Score temporal |
+
+Lista, Kanban, Prioridades, Tarefas, Dashboard e digest apresentam essas filas separadamente. Cada fila oferece até cinco oportunidades; as posições não são comparáveis entre filas. A distribuição de tempo entre venda, revalidação e qualificação permanece uma decisão comercial, sem regra automática de alocação. Mais de 138 dias significa ausência de suporte temporal observado, não perda presumida. Lead Tier é uma heurística comercial, não uma probabilidade validada.
+
+O motor, o artefato e os resultados históricos de scoring permanecem preservados. Os percentis econômicos antigos das filas sem estimativa temporal continuam apenas no contrato interno de compatibilidade; não são exibidos como Score nem usados para competir com Venda ativa. A verificação de fingerprint passou a aceitar CSVs com finais de linha Windows ou Unix sem aceitar mudanças no conteúdo dos dados.
+
+### Evidência reproduzível desta atualização
+
+Foi acrescentado um [novo benchmark temporal auditável](docs/BENCHMARK_REPRODUCIBLE.md), com script, métricas e IDs selecionados. Ele usa seis avaliações mensais e treina somente com janelas de 30 dias já encerradas em cada corte. **Não é a reprodução do benchmark histórico citado no relato original abaixo.**
+
+| Método | Ganhos capturados | Receita histórica capturada |
+| --- | ---: | ---: |
+| A — preço | 165 | US$ 969.188 |
+| B — idade × preço | 137 | US$ 747.394 |
+| C — fallback temporal × preço | 172 | US$ 951.180 |
+| D — modelo/fallback × preço | 198 | US$ 1.077.539 |
+
+AUC média: **0,542 para C e 0,541 para D**. O resultado mostra discriminação fraca e não sustenta promessa de ganho futuro de receita. A seleção de D capturou mais receita neste recorte retrospectivo; não foi demonstrado efeito causal, significância estatística ou superioridade prospectiva. A paridade **2.089/2.089** verifica consistência de implementação, não desempenho preditivo.
+
+**Para executar:** consulte o [README técnico](solution/README.md). **Para entender as regras atuais:** [Metodologia](docs/METHODOLOGY.md) e [Limitações](docs/LIMITATIONS.md). A [validação local](docs/POST_REVIEW_VALIDATION.md) registra os testes em Windows, Linux e navegador. O [adendo do Process Log](process-log/PROCESS_LOG.md#7-revisão-externa-e-correção-de-coerência--26092026) registra esta rodada adicional. Ela não está incluída na estimativa original de aproximadamente seis horas; não houve cronometragem desta revisão.
+
+## Registro da entrega inicial — preservado
+
+O relato autoral e as capturas a seguir documentam a entrega de 25/09/2026. Referências à fila única, ao ranking global, ao congelamento anterior e ao benchmark sem scripts descrevem **aquela versão**. Para o comportamento e a evidência executável atuais, prevalecem a atualização acima e os documentos técnicos vinculados. As imagens originais foram mantidas como histórico.
+
 ## Sobre mim
 
 - **Nome:** Felipe de Magalhães Alves, 31 anos.

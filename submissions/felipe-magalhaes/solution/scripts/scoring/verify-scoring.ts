@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { datasetFingerprint } from "./dataset-fingerprint";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "csv-parse/sync";
@@ -27,12 +27,16 @@ const [pipeline, accounts, products, teams] = await Promise.all([
 const artifact = JSON.parse(await readFile("src/domain/scoring/model-artifact.json", "utf8")) as {
   datasetSha256: string; trainingRows: number; numericFeatures: string[]; categoricalFeatures: string[];
 };
-const digest = createHash("sha256");
-for (const filename of ["accounts.csv", "products.csv", "sales_pipeline.csv", "sales_teams.csv"]) {
-  digest.update(filename);
-  digest.update(await readFile(path.join(process.cwd(), "data", filename)));
-}
-assert.equal(artifact.datasetSha256, digest.digest("hex"), "Artefato e CSVs devem coincidir");
+const files = await Promise.all(["accounts.csv", "products.csv", "sales_pipeline.csv", "sales_teams.csv"].map(async (name) => ({
+  name, content: await readFile(path.join(process.cwd(), "data", name)),
+})));
+assert.equal(artifact.datasetSha256, datasetFingerprint(files), "Artefato e CSVs devem coincidir");
+const lfFiles = files.map((file) => ({ ...file, content: Buffer.from(file.content.toString("utf8").replace(/\r\n/g, "\n")) }));
+assert.equal(datasetFingerprint(lfFiles), artifact.datasetSha256, "Checkout LF deve preservar a identidade dos dados");
+const crlfFiles = lfFiles.map((file) => ({ ...file, content: Buffer.from(file.content.toString("utf8").replace(/\n/g, "\r\n")) }));
+assert.equal(datasetFingerprint(crlfFiles), artifact.datasetSha256, "Checkout CRLF deve preservar a identidade dos dados");
+const tampered = files.map((file) => file.name === "products.csv" ? { ...file, content: Buffer.from(file.content.toString("utf8").replace("26768", "26769")) } : file);
+assert.notEqual(datasetFingerprint(tampered), artifact.datasetSha256, "Alteração real de preço precisa falhar na integridade");
 assert.equal(artifact.trainingRows, 10589);
 assert.deepEqual(artifact.numericFeatures, ["age_days", "revenue", "employees", "company_age"]);
 assert.deepEqual(artifact.categoricalFeatures, ["age_band", "product", "sector", "is_subsidiary"]);

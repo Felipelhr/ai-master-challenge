@@ -3,6 +3,7 @@ import { csvDealsRepository } from "../src/repositories/deals/csv-deals-reposito
 import { createCrmStore } from "../src/repositories/sqlite/crm-store";
 import { getCrmSnapshot } from "../src/services/crm/crm-service";
 import { dashboardMetrics, PRIORITIZED_SCORE_CUTOFF } from "../src/services/dashboard/dashboard-metrics";
+import { hasTemporalScore } from "../src/domain/scoring/priority-queue";
 import { emptyPriorityFilters, rankTopFive } from "../src/services/priorities/rank-top-five";
 
 const store = createCrmStore(":memory:");
@@ -12,12 +13,12 @@ const scoresBefore = JSON.stringify(snapshot.scores), tiersBefore = JSON.stringi
 const base = dashboardMetrics(snapshot, emptyPriorityFilters, "all", new Date("2026-09-25T12:00:00Z"));
 assert.equal(base.open.count, 2089);
 assert.equal(base.topFive.eligibleCount, 2089);
-assert.deepEqual(base.topFive.items.map((deal) => deal.id), rankTopFive(snapshot.deals,snapshot.scores,snapshot.tiers,snapshot.dealTags).items.map((deal) => deal.id));
+assert.deepEqual(base.topFive.queues.flatMap((group) => group.items).map((deal) => deal.id), rankTopFive(snapshot.deals,snapshot.scores,snapshot.tiers,snapshot.dealTags).queues.flatMap((group) => group.items).map((deal) => deal.id));
 assert.equal(base.stages.reduce((sum, stage) => sum + stage.count, 0), base.open.count);
 assert.equal(base.actions.reduce((sum, action) => sum + action.count, 0), base.open.count);
 assert.equal(base.tiers.reduce((sum, tier) => sum + tier.count, 0), base.open.count);
 assert.equal(base.evidence.reduce((sum, evidence) => sum + evidence.count, 0), base.open.count);
-assert.equal(base.prioritized.count, snapshot.deals.filter((deal) => snapshot.scores[deal.id]?.priorityScore >= PRIORITIZED_SCORE_CUTOFF).length);
+assert.equal(base.prioritized.count, snapshot.deals.filter((deal) => hasTemporalScore(snapshot.scores[deal.id]) && snapshot.scores[deal.id]?.priorityScore >= PRIORITIZED_SCORE_CUTOFF).length);
 assert.equal(base.tasks.overdue <= base.tasks.pending, true);
 const agent = snapshot.deals.find((deal) => snapshot.scores[deal.id])!.agent;
 const filtered = dashboardMetrics(snapshot, { ...emptyPriorityFilters, agent }, "month", new Date("2026-09-25T12:00:00Z"));
@@ -32,3 +33,7 @@ assert.equal(dashboardMetrics(custom, emptyPriorityFilters, "all").stages.find((
 assert.equal(JSON.stringify(snapshot.scores), scoresBefore);
 assert.equal(JSON.stringify(snapshot.tiers), tiersBefore);
 console.log("Dashboard PASS: cards, filtros, etapas personalizadas, ações, tiers, evidência, tarefas e Top 5 compartilhado.");
+
+assert.equal(base.temporal.count,298);
+assert.equal(dashboardMetrics(snapshot,{...emptyPriorityFilters,queue:"REVALIDATE"},"all").averageScore,null);
+assert.equal(dashboardMetrics(snapshot,{...emptyPriorityFilters,queue:"REVALIDATE"},"all").prioritized.count,0);

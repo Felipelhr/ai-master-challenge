@@ -1,5 +1,7 @@
 # Process Log — Challenge 003 / G4 Lead Scorer
 
+> As seções 1–6 e suas capturas preservam o registro da entrega inicial. A [seção 7](#7-revisão-externa-e-correção-de-coerência--26092026) documenta a revisão posterior; as referências anteriores ao ranking único não descrevem a versão atual.
+
 **Responsável:** Felipe de Magalhães Alves.
 
 **Entrega principal:** [`../solution/`](../solution/), produto congelado no commit `7f3d349`.
@@ -95,3 +97,19 @@ As capturas abaixo registram conversas de exploração, decisões de Felipe e te
 10. [Sugestão de exibir o protótipo inicial](screenshots/Sugestão-exibir-prototipo-inicial.jpeg) — Felipe propõe incluir o protótipo como evidência do processo, deixando explícito que a solução final é outra.
 11. [Tela da Lista](screenshots/Print-Tela-Lista.jpeg) — A captura mostra a carteira aberta com Score, Tier, ação recomendada, motivo de prioridade, tarefa e ordenação padrão visíveis.
 12. [Tela do Kanban](screenshots/Print-Tela-Kanban.jpeg) — A captura mostra Prospecção, Em negociação, Finalização e a ação de adicionar etapa no pipeline filtrado por Status Aberto.
+
+## 7. Revisão externa e correção de coerência — 26/09/2026
+
+Felipe trouxe avaliações externas atribuídas a Astra, Opus e ao agente de um colega. Os pareceres convergiram em um problema que as verificações anteriores não cobriam: scores de naturezas diferentes eram apresentados na mesma escala e disputavam um Top 5 único. Felipe interrompeu a expansão de funcionalidades, pediu a volta ao estado publicado e autorizou corrigir o problema antes de aprovar qualquer atualização da entrega.
+
+A reprodução local confirmou o efeito: no Top 5 global original, três oportunidades pertenciam à revalidação, sem propensão temporal. Das 135 posições de Top 5 por vendedor, nove usavam o modelo completo, 16 o fallback, 68 revalidação e 42 qualificação. A paridade de implementação havia passado, mas não testava a validade da decisão de combinar esses grupos. Esse foi um limite real do trabalho anterior com IA.
+
+A implementação passou a separar **Venda ativa**, **Revalidação** e **Qualificação**, cada uma com seu Top 5. Somente Venda ativa exibe Score e ordena Score → Valor → ID; as demais ordenam Valor → ID. Nenhuma cota de atenção entre filas foi inventada. Lista, Kanban, workspace, Dashboard e digest foram alinhados à mesma regra. O motor histórico, o artefato e o Lead Tier foram preservados. A restrição de 138 dias continua representando falta de cobertura, sem classificar automaticamente os negócios como perdidos.
+
+Outra crítica reproduzida dizia respeito ao fingerprint dos CSVs: diferenças CRLF/LF podiam impedir a verificação em Linux. A canonicalização dos finais de linha mantém a assinatura histórica, aceita as duas representações e continua detectando alteração de valores. A instalação limpa em Linux, com CSVs em LF, confirmou a paridade de 2.089/2.089 e a passagem das oito suítes de verificação.
+
+Foi criado um [benchmark temporal novo e reproduzível](../docs/BENCHMARK_REPRODUCIBLE.md), sem substituir o artefato em produção. Foram versionados o protocolo, o script, os resultados por corte e os IDs selecionados. O treino de cada avaliação usa apenas rótulos já conhecidos naquele momento. Os novos resultados são mais modestos que os reportados originalmente: D capturou 198 ganhos e US$ 1.077.539, com AUC média de aproximadamente 0,541. Isso não reproduz a AUC histórica de 0,658 nem demonstra ganho de receita em produção. O resultado desfavorável foi mantido e explicitado.
+
+O julgamento humano registrado nesta rodada foi interromper novas features, questionar a coerência da promessa central e exigir revisão antes de publicar. A separação operacional e o protocolo executável foram implementados com IA sob essa autorização; a aprovação visual e a decisão de atualizar o desafio continuam com Felipe.
+
+Esta é uma rodada adicional à entrega original. **A estimativa anterior de aproximadamente seis horas não foi recalculada nem estendida para incluir esta revisão.** Não há medição contínua que permita declarar uma duração exata. O protótipo, os registros brutos e as capturas anteriores permanecem evidências históricas, sem reescrita retrospectiva.

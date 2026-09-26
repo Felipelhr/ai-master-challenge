@@ -21,7 +21,7 @@ try {
   const scoresBefore = JSON.stringify(snapshot.scores), tiersBefore = JSON.stringify(snapshot.tiers);
   const scope = { ...emptyPriorityFilters, agent: snapshot.deals.find((deal) => snapshot.scores[deal.id])!.agent };
   const digest = priorityDigest(snapshot, scope);
-  assert.deepEqual(digest.items.map((item) => item.id), rankTopFive(snapshot.deals,snapshot.scores,snapshot.tiers,snapshot.dealTags,scope).items.map((deal) => deal.id));
+  assert.deepEqual(digest.items.map((item) => item.id), rankTopFive(snapshot.deals,snapshot.scores,snapshot.tiers,snapshot.dealTags,scope).queues.flatMap((group) => group.items).map((deal) => deal.id));
   assert.ok(!digest.text.includes("MEDIUM") && !digest.text.includes("LOW"));
   assert.ok(digest.html.includes("Suas prioridades"));
   assert.equal(nextRunAt({ frequency: "daily", sendTime: "08:00", weekday: null, dayOfMonth: null }, new Date("2026-09-25T10:00:00Z")), "2026-09-25T11:00:00.000Z");
@@ -73,3 +73,16 @@ try {
   assert.equal(JSON.stringify(snapshot.tiers),tiersBefore);
   console.log("Email PASS: preview, envio manual mockado, recorrência, persistência, scope, idempotência, falha isolada e ausência de credenciais.");
 } finally { rmSync(temporary,{ recursive:true, force:true }); }
+
+// Empty/legacy scopes keep independent groups and never render economic percentiles as scores.
+const memory = createCrmStore(":memory:");
+const fullSnapshot = getCrmSnapshot(await csvDealsRepository.list(), memory);
+const grouped = priorityDigest(fullSnapshot, emptyPriorityFilters);
+assert.deepEqual(grouped.queues.map((q) => q.eligibleCount),[298,1291,500]);
+assert.equal(grouped.items.length,15);
+assert(grouped.items.filter((item) => item.queue !== "SELL").every((item) => item.score === null));
+assert(grouped.queues.every((group) => group.items[0]?.rank === 1));
+assert(grouped.text.includes("Revalidação") && grouped.text.includes("Qualificação"));
+const unsafe = {...fullSnapshot,deals:fullSnapshot.deals.map((deal) => ({...deal,account:"<script>alert(1)</script>"}))};
+assert(!priorityDigest(unsafe,emptyPriorityFilters).html.includes("<script>"));
+memory.close();

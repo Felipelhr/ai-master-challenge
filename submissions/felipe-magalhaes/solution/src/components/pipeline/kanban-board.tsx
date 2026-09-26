@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { DealCard } from "./deal-card";
 import type { ScoresByDeal } from "@/services/scoring/score-snapshot";
 import type { TiersByDeal } from "@/services/tiering/tier-snapshot";
-import { sortOperationalDeals } from "@/services/crm/operational-order";
+import { sortOperationalDeals, groupOperationalDeals } from "@/services/crm/operational-order";
+import { QUEUE_LABELS } from "@/domain/scoring/priority-queue";
 import { displayStageId } from "@/domain/pipeline/stage";
 import type { Mutate } from "@/components/deals/operations-panels";
 
@@ -33,8 +34,8 @@ function KanbanColumn({ stage, deals, scores, tiers, nextTasks, onOpen }: { stag
   return <section className="kanban-column">
     <header className="column-header"><div><strong>{stage.name}</strong><span>{number.format(deals.length)}</span></div><span>{currency.format(totalValue)}</span></header>
     <div className="column-scroll">
-      {deals.length === 0 ? <div className="column-empty">Nenhum negócio</div> : deals.slice(0, limit).map((deal) => <DealCard key={deal.id} deal={deal} score={scores[deal.id]} tier={tiers[deal.id]?.tier ?? "—"} nextTask={nextTasks[deal.id] ?? null} onOpen={onOpen} />)}
-      {limit < deals.length && <Button variant="outline" className="load-more" onClick={() => setLimit(limit + INITIAL_COUNT)}>Carregar mais {Math.min(INITIAL_COUNT, deals.length - limit)}</Button>}
+      {deals.length === 0 ? <div className="column-empty">Nenhum negócio</div> : groupOperationalDeals(deals, scores).map((group) => <section className="kanban-queue" key={group.queue ?? "closed"}><h4>{group.queue ? QUEUE_LABELS[group.queue] : "Encerrados"} · {group.items.length}</h4>{group.items.slice(0, limit).map((deal) => <DealCard key={deal.id} deal={deal} score={scores[deal.id]} tier={tiers[deal.id]?.tier ?? "—"} nextTask={nextTasks[deal.id] ?? null} onOpen={onOpen} />)}</section>)}
+      {groupOperationalDeals(deals, scores).some((group) => group.items.length > limit) && <Button variant="outline" className="load-more" onClick={() => setLimit(limit + INITIAL_COUNT)}>Carregar mais {Math.min(INITIAL_COUNT, deals.length - limit)}</Button>}
     </div>
   </section>;
 }

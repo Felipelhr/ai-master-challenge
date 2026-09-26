@@ -9,7 +9,8 @@ import { currency, number } from "@/lib/format";
 import { ACTION_LABELS, CONFIDENCE_LABELS, EVIDENCE_HELP } from "@/domain/scoring/labels";
 import type { ScoresByDeal } from "@/services/scoring/score-snapshot";
 import type { TiersByDeal } from "@/services/tiering/tier-snapshot";
-import { sortDealsByScore, sortOperationalDeals } from "@/services/crm/operational-order";
+import { sortDealsByScore, sortOperationalDeals, groupOperationalDeals } from "@/services/crm/operational-order";
+import { hasTemporalScore, priorityExplanation, QUEUE_LABELS, QUEUE_DESCRIPTIONS } from "@/domain/scoring/priority-queue";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const BLOCK_SIZE = 25;
 export const DEFAULT_COLUMNS = ["account","score","tier","action","reason","task","agent","value","stage","product","evidence","id"] as const;
 type Column = (typeof DEFAULT_COLUMNS)[number];
-const LABELS: Record<Column,string> = { account:"Conta", score:"Score", tier:"Tier", action:"Ação Recomendada", reason:"Motivo de Prioridade", task:"Tarefa", agent:"Vendedor", value:"Valor", stage:"Etapa", product:"Produto", evidence:"Qualidade da Evidência", id:"Oportunidade" };
+const LABELS: Record<Column,string> = { account:"Conta", score:"Score · Venda ativa", tier:"Tier", action:"Ação Recomendada", reason:"Motivo de Prioridade", task:"Tarefa", agent:"Vendedor", value:"Valor", stage:"Etapa", product:"Produto", evidence:"Qualidade da Evidência", id:"Oportunidade" };
 const STORAGE_KEY = "arena-list-columns-v1";
 type Sort = { column: Column; direction: "asc" | "desc" } | null;
 
@@ -63,7 +64,7 @@ export function DealsList({ deals, scores, tiers, stages, nextTasks, onOpen }: {
       const score = scores[deal.id];
       switch (sort.column) {
         case "account": return deal.account; case "score": return score?.priorityScore ?? -1; case "tier": return tiers[deal.id]?.tier ?? "";
-        case "action": return score ? ACTION_LABELS[score.action] : ""; case "reason": return score?.reason ?? "";
+        case "action": return score ? ACTION_LABELS[score.action] : ""; case "reason": return priorityExplanation(score);
         case "task": return nextTasks[deal.id]?.title ?? ""; case "agent": return deal.agent; case "value": return deal.value;
         case "stage": return stageNames.get(displayStageId(deal) ?? "") ?? ""; case "product": return deal.product;
         case "evidence": return score ? CONFIDENCE_LABELS[score.confidence] : ""; case "id": return deal.id;
@@ -71,6 +72,8 @@ export function DealsList({ deals, scores, tiers, stages, nextTasks, onOpen }: {
     };
     return all.sort((a,b) => { const x = field(a), y = field(b); const comparison = typeof x === "number" && typeof y === "number" ? x-y : String(x).localeCompare(String(y),"pt-BR"); return (sort.direction === "asc" ? comparison : -comparison) || a.id.localeCompare(b.id); });
   }, [deals,scores,tiers,nextTasks,stageNames,sort]);
+  const groups = groupOperationalDeals(ordered, scores);
+  const displayedCount = groups.reduce((count, group) => count + Math.min(limit, group.items.length), 0);
   function move(index: number, step: -1 | 1) {
     const target = index + step; if (target < 0 || target >= columns.length) return;
     const updated = [...columns]; [updated[index],updated[target]] = [updated[target],updated[index]];
@@ -81,10 +84,10 @@ export function DealsList({ deals, scores, tiers, stages, nextTasks, onOpen }: {
     const score = scores[deal.id];
     switch (column) {
       case "account": return <strong>{deal.account}</strong>;
-      case "score": return score ? <span className="priority-score">{score.priorityScore}</span> : "—";
+      case "score": return hasTemporalScore(score) ? <span className="priority-score">{score.priorityScore}</span> : <span title="Sem estimativa temporal; ordenação por valor dentro da fila">—</span>;
       case "tier": return <span className="tier-badge">{tiers[deal.id]?.tier ?? "—"}</span>;
       case "action": return score ? ACTION_LABELS[score.action] : "—";
-      case "reason": return <span className="reason-cell" title={score?.reason}>{score?.reason ?? "—"}</span>;
+      case "reason": return <span className="reason-cell" title={priorityExplanation(score)}>{priorityExplanation(score)}</span>;
       case "task": return nextTasks[deal.id]?.title ?? "—";
       case "agent": return deal.agent;
       case "value": return currency.format(deal.value);
@@ -95,12 +98,12 @@ export function DealsList({ deals, scores, tiers, stages, nextTasks, onOpen }: {
     }
   }
   return <div className="list-panel">
-    <div className="list-tools"><span>{sort ? `${LABELS[sort.column]} ${sort.direction === "asc" ? "↑" : "↓"}` : "Ordenação padrão · Score ↓, Valor ↓"}</span><div><Button variant="ghost" onClick={() => setSort(null)}>Ordenação padrão</Button><Button variant="outline" onClick={() => setColumnsOpen(true)}>Colunas</Button></div></div>
+    <div className="list-tools"><span>{sort ? `${LABELS[sort.column]} ${sort.direction === "asc" ? "↑" : "↓"}` : "Filas independentes · Venda ativa: Score ↓, Valor ↓ · demais: Valor ↓"}</span><div><Button variant="ghost" onClick={() => setSort(null)}>Ordenação padrão</Button><Button variant="outline" onClick={() => setColumnsOpen(true)}>Colunas</Button></div></div>
     <div className="list-horizontal-label">Arraste para ver as demais colunas →</div>
     <div className="list-horizontal-bar" ref={horizontalBar} aria-label="Rolagem horizontal da lista" onScroll={(event) => { if (tableScroll.current) tableScroll.current.scrollLeft = event.currentTarget.scrollLeft; }}><div style={{ width: tableWidth }} /></div>
-    <div className="list-scroll" ref={scroll}><Table><TableHeader><TableRow>{columns.map((column) => <TableHead key={column} className={`list-col-${column}`} title={column === "evidence" ? EVIDENCE_HELP : undefined}><button className="list-sort-button" onClick={() => setSort((current) => ({ column, direction: current?.column === column && current.direction === "asc" ? "desc" : "asc" }))}>{LABELS[column]} {sort?.column === column ? sort.direction === "asc" ? "↑" : "↓" : ""}</button></TableHead>)}</TableRow></TableHeader><TableBody>{ordered.slice(0,limit).map((deal) => <TableRow key={deal.id} className="deal-row" onClick={() => onOpen(deal)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") onOpen(deal); }} aria-label={`Abrir oportunidade ${deal.id}`}>{columns.map((column) => <TableCell key={column} className={`list-col-${column}`}>{cell(column,deal)}</TableCell>)}</TableRow>)}</TableBody></Table><div ref={sentinel} className="list-sentinel" aria-hidden="true" /></div>
+    <div className="list-scroll" ref={scroll}><Table><TableHeader><TableRow>{columns.map((column) => <TableHead key={column} className={`list-col-${column}`} title={column === "evidence" ? EVIDENCE_HELP : undefined}><button className="list-sort-button" onClick={() => setSort((current) => ({ column, direction: current?.column === column && current.direction === "asc" ? "desc" : "asc" }))}>{LABELS[column]} {sort?.column === column ? sort.direction === "asc" ? "↑" : "↓" : ""}</button></TableHead>)}</TableRow></TableHeader>{groups.map((group) => <TableBody key={group.queue ?? "closed"}><TableRow className="queue-table-heading"><TableCell colSpan={columns.length}><strong>{group.queue ? QUEUE_LABELS[group.queue] : "Encerrados"}</strong> · {group.items.length} oportunidades<small>{group.queue ? QUEUE_DESCRIPTIONS[group.queue] : "Sem prioridade operacional atual."}</small></TableCell></TableRow>{group.items.slice(0,limit).map((deal) => <TableRow key={deal.id} className="deal-row" onClick={() => onOpen(deal)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter") onOpen(deal); }} aria-label={`Abrir oportunidade ${deal.id}`}>{columns.map((column) => <TableCell key={column} className={`list-col-${column}`}>{cell(column,deal)}</TableCell>)}</TableRow>)}</TableBody>)}</Table><div ref={sentinel} className="list-sentinel" aria-hidden="true" /></div>
     {deals.length === 0 && <div className="empty-list">Nenhuma oportunidade corresponde aos filtros.</div>}
-    <div className="list-pagination"><span>{number.format(Math.min(limit,deals.length))} de {number.format(deals.length)} oportunidades</span>{limit < deals.length && <span>Carregando ao rolar…</span>}</div>
+    <div className="list-pagination"><span>{number.format(displayedCount)} de {number.format(deals.length)} oportunidades</span>{displayedCount < deals.length && <span>Carregando ao rolar…</span>}</div>
     <Sheet open={columnsOpen} onOpenChange={setColumnsOpen}><SheetContent className="column-sheet"><SheetTitle>Organizar colunas</SheetTitle><SheetDescription>Use as setas para mudar a ordem. A preferência fica neste navegador.</SheetDescription><div className="column-order-list">{columns.map((column,index) => <div key={column}><span>{index+1}. {LABELS[column]}</span><button aria-label={`Mover ${LABELS[column]} para a esquerda`} disabled={index===0} onClick={() => move(index,-1)}>↑</button><button aria-label={`Mover ${LABELS[column]} para a direita`} disabled={index===columns.length-1} onClick={() => move(index,1)}>↓</button></div>)}</div><Button variant="outline" onClick={restoreColumns}>Restaurar ordem padrão</Button></SheetContent></Sheet>
   </div>;
 }
