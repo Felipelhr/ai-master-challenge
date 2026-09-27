@@ -27,6 +27,22 @@ D selecionou mais ganhos e valor histórico que A neste experimento. **AUC 0,541
 
 Apenas negociações com suporte temporal são avaliadas. Nada neste resultado valida comparação com Qualificação/Revalidação ou divisão do tempo entre filas. O componente preditivo permanece experimental.
 
+### Estabilidade nos seis cortes
+
+Comparação direta do preço simples (A) com modelo/fallback × preço (D), extraída dos [resultados por corte](../solution/scripts/scoring/benchmark-results/summary.json). Cada método seleciona 150 oportunidades por corte. Os valores são o valor histórico dos ganhos selecionados nos 30 dias seguintes, em USD; a AUC de D avalia a propensão em todo o universo elegível daquele corte.
+
+| Corte | Ganhos A | Ganhos D | Valor A (USD) | Valor D (USD) | AUC D |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 30/06/2017 | 11 | 5 | 53.644 | 24.377 | 0,453 |
+| 31/07/2017 | 30 | 37 | 204.780 | 240.045 | 0,601 |
+| 31/08/2017 | 38 | 69 | 220.941 | 351.412 | 0,748 |
+| 30/09/2017 | 7 | 2 | 39.619 | 10.756 | 0,388 |
+| 31/10/2017 | 26 | 24 | 160.581 | 139.376 | 0,441 |
+| 30/11/2017 | 53 | 61 | 289.623 | 311.573 | 0,612 |
+| **Total / AUC média** | **165** | **198** | **969.188** | **1.077.539** | **0,541** |
+
+D supera A em ganhos selecionados e valor histórico em julho, agosto e novembro; fica abaixo em junho, setembro e outubro. **A vantagem agregada não é consistente entre os cortes**: em três dos seis, a AUC de D também fica abaixo de 0,5. Este detalhamento não altera o protocolo nem acrescenta evidência de significância estatística ou ganho causal.
+
 ## Reprodução e arquivos
 
 A partir de `solution/`, com Python 3.12 e dependências de `scripts/scoring/requirements.txt`:

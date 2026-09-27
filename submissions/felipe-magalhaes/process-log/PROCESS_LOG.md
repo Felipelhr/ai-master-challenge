@@ -10,7 +10,7 @@ O vídeo complementa este registro escrito e ajuda a avaliar como Felipe realizo
 
 **Responsável:** Felipe de Magalhães Alves.
 
-**Entrega principal:** [`../solution/`](../solution/), produto congelado no commit `7f3d349`.
+**Entrega principal:** [`../solution/`](../solution/), com as três filas descritas no [README atual](../README.md). O congelamento em `7f3d349` foi um marco da entrega inicial; a seção 7 registra a revisão posterior. O [relato autoral inicial](../README_ENTREGA_INICIAL.md) foi preservado integralmente como histórico.
 
 **Fontes deste relato:** [registros originais](raw/), [histórico bruto de commits](COMMIT_HISTORY_RAW.md), [inventário](../docs/INVENTORY_RAW.md), código e scripts da solução e decisões registradas no pedido de documentação. Datas dos commits são evidência de sequência, **não medição de horas trabalhadas**.
 
@@ -119,3 +119,16 @@ Foi criado um [benchmark temporal novo e reproduzível](../docs/BENCHMARK_REPROD
 O julgamento humano registrado nesta rodada foi interromper novas features, questionar a coerência da promessa central e exigir revisão antes de publicar. A separação operacional e o protocolo executável foram implementados com IA sob essa autorização; a aprovação visual e a decisão de atualizar o desafio continuam com Felipe.
 
 Esta é uma rodada adicional à entrega original. **A estimativa anterior de aproximadamente seis horas não foi recalculada nem estendida para incluir esta revisão.** Não há medição contínua que permita declarar uma duração exata. O protótipo, os registros brutos e as capturas anteriores permanecem evidências históricas, sem reescrita retrospectiva.
+
+## 8. Organização da apresentação atual — 27/09/2026
+
+Após a avaliação final, Felipe autorizou uma rodada local de apresentação documental. O README passou a priorizar o resumo e os resultados da versão com três filas. O conteúdo autoral da entrega inicial foi preservado integralmente em [README_ENTREGA_INICIAL.md](../README_ENTREGA_INICIAL.md), mantendo os links e as capturas históricas.
+
+O [exemplo prático de uso](../docs/OPERATIONAL_WALKTHROUGH.md) descreve três oportunidades reais de Niesha Huffines e como usar os controles existentes para interpretar a prioridade, organizar a tarefa e registrar contexto. É uma demonstração documental, sem contatos ou resultados comerciais inventados. A [tabela dos seis cortes](../docs/BENCHMARK_REPRODUCIBLE.md#estabilidade-nos-seis-cortes) foi acrescentada a partir dos resultados já incluídos, mostrando tanto as vitórias quanto as perdas frente ao preço simples.
+
+Capturas atuais, obtidas da aplicação local com o código de `6073941`:
+
+- [Prioridades com três filas independentes](screenshots/15-prioridades-tres-filas.png) — contagens 298/1.291/500, até cinco posições por fila e Score restrito a Venda ativa.
+- [Como funciona: explicação das três filas](screenshots/16-como-funciona-tres-filas.png) — trecho inicial do guia atual, distinguindo Score, Tier, evidência e ação.
+
+Esta rodada organiza documentação e evidências; não altera código, scoring, funções ou critérios operacionais. Não acrescenta medição de tempo à estimativa inicial nem registra publicação no PR.
